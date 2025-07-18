@@ -291,7 +291,7 @@ elif page == "📖 Project Insight":
             It focus on cyber threat prevention and digital safety.
 
             Developed By: Ms.Sneha Sharma
-               Guided By: Mr.Rakshit Mehra
+               Guided By: Er.Rakshit Mehra
 
             Use the sidebar to explore the Home page, prediction, predicted data analysis, and understand how machine learning protects you from phishing threats.
             

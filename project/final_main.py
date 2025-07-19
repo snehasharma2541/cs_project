@@ -20,6 +20,49 @@ st.sidebar.title("🔍 Navigation")
 page = st.sidebar.radio("Go to", ["📖 Project Insight","🏠Home", "🔍Prediction", "📊Data Analysis"])
 
 
+        
+import re
+import socket
+from urllib.parse import urlparse
+
+def extract_features_from_url(url):
+    features = {
+        "having_ip_address": -1 if re.match(r"\d+\.\d+\.\d+\.\d+", url) else 1,
+        "url_length": 1 if len(url) < 54 else (-1 if len(url) > 75 else 0),
+        "shortining_service": -1 if re.search("bit\.ly|goo\.gl|tinyurl|ow\.ly", url) else 1,
+        "having_at_symbol": -1 if "@" in url else 1,
+        "double_slash_redirecting": -1 if url.count("//") > 1 else 1,
+        "prefix_suffix": -1 if "-" in urlparse(url).netloc else 1,
+        "having_sub_domain": -1 if url.count(".") >= 3 else (0 if url.count(".") == 2 else 1),
+        "sslfinal_state": 1 if url.startswith("https") else -1,
+        "domain_registeration_length": 1,
+        "favicon": 1,
+        "port": 1,
+        "https_token": -1 if "https" in urlparse(url).netloc else 1,
+        "request_url": 1,
+        "url_of_anchor": 0,
+        "links_in_tags": 0,
+        "sfh": 1,
+        "submitting_to_email": 1,
+        "abnormal_url": -1 if socket.gethostbyname(urlparse(url).netloc) else 1,
+        "redirect": 0,
+        "on_mouseover": 0,
+        "rightclick": 0,
+        "popupwidnow": 0,
+        "iframe": 0,
+        "age_of_domain": 1,
+        "dnsrecord": 1,
+        "web_traffic": 0,
+        "page_rank": 0,
+        "google_index": 1,
+        "links_pointing_to_page": 0,
+        "statistical_report": 1
+    }
+    return features
+
+
+
+
 if page == "🏠Home":
     st.markdown("""
         <style>
@@ -62,12 +105,16 @@ if page == "🏠Home":
 
 elif page == "🔍Prediction":
     st.title("🔐 Prediction Page")
-    st.markdown("Use this page to input website features and detect phishing threats.")
+    st.markdown("Use this page to detect phishing threats using website features or URL")
     
-    with st.form("input_form"):
-        st.write("### 📝 Enter Website Characteristics")
+    prediction_mode = st.radio("Choose input method:", ["Manual Input", "URL Input"])
 
-        input_data = {
+    
+
+    if prediction_mode == "Manual Input":
+        with st.form("input_form"):
+            st.write("### 📝 Enter Website Characteristics")
+            input_data = {
             "having_ip_address": st.selectbox("1. Having IP Address", [-1, 1]),
             "url_length": st.selectbox("2. URL Length", [-1, 0, 1]),
             "shortining_service": st.selectbox("3. Shortening Service", [-1, 1]),
@@ -98,24 +145,44 @@ elif page == "🔍Prediction":
             "google_index": st.selectbox("28. Google Index", [-1, 1]),
             "links_pointing_to_page": st.selectbox("29. Links Pointing to Page", [0, 1]),
             "statistical_report": st.selectbox("30. Statistical Report", [-1, 1]),
-        }
+           }
+            submit = st.form_submit_button("🚀 Predict")
 
-        submit = st.form_submit_button("🚀 Predict")
+        if submit:
+            demo_input = pd.DataFrame([list(input_data.values())], columns=input_data.keys())
+            prediction = model.predict(demo_input)[0]
+            proba = model.predict_proba(demo_input)[0]
+
+            result_text = "🟢 Legitimate Website" if prediction == 1 else "🔴 Phishing Website"
+            confidence = round(max(proba) * 100, 2)
+
+            st.markdown("### 🔍 Prediction Result:")
+            st.success(result_text)
+            st.markdown(f"Confidence: `{confidence}%`")
+                
+    elif prediction_mode == "URL Input":
+            st.write("### 🌐 Enter a Website URL")
+            url = st.text_input("🔗 Website URL", placeholder="https://example.com")
+            if st.button("🚀 Predict from URL"):
+                if url:
+                    try:
+                        extracted_features = extract_features_from_url(url)
+                        demo_input = pd.DataFrame([list(extracted_features.values())], columns=extracted_features.keys())
+                        prediction = model.predict(demo_input)[0]
+                        proba = model.predict_proba(demo_input)[0]
+
+                        result_text = "🟢 Legitimate Website" if prediction == 1 else "🔴 Phishing Website"
+                        confidence = round(max(proba) * 100, 2)
+                        st.markdown("### 🔍 Prediction Result:")
+                        st.success(result_text)
+                        st.markdown(f"Confidence: `{confidence}%`")
+                    except Exception as e:
+                        st.error(f"❌ Error extracting features from URL: {e}")
+                else:
+                    st.warning("Please enter a valid URL.")
 
 
-    if submit:
-        demo_input = pd.DataFrame([list(input_data.values())], columns=input_data.keys())
-        prediction = model.predict(demo_input)[0]
-        proba = model.predict_proba(demo_input)[0]
-
-        result_text = "🟢 Legitimate Website" if prediction == 1 else "🔴 Phishing Website"
-        confidence = round(max(proba) * 100, 2)
-
-        st.markdown("### 🔍 Prediction Result:")
-        st.success(result_text)
-        st.markdown(f"Confidence: `{confidence}%`")
         
-
 
 
 elif page == "📊Data Analysis":
